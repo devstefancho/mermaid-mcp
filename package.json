@@ -1,0 +1,51 @@
+{
+  "name": "@devstefancho/mermaid-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for creating Mermaid flowcharts",
+  "main": "build/index.js",
+  "bin": {
+    "mermaid-mcp": "build/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x build/cli.js",
+    "start": "node build/index.js",
+    "dev": "ts-node src/index.ts",
+    "publish": "npm publish --access public"
+  },
+  "keywords": [
+    "mcp",
+    "mermaid",
+    "flowchart",
+    "claude",
+    "model-context-protocol"
+  ],
+  "author": "Stefan Cho <devstefancho@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "build/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@9.11.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devstefancho/mermaid-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/devstefancho/mermaid-mcp/issues"
+  },
+  "homepage": "https://github.com/devstefancho/mermaid-mcp#readme"
+}
