@@ -3,9 +3,10 @@
  *
  * This file implements a server that integrates with the Model Context Protocol (MCP)
  * to provide flowchart analysis and generation capabilities using Mermaid syntax.
- * The server exposes two main tools:
+ * The server exposes the following tools:
  * 1. analyze-flowchart: Analyzes text descriptions of flowcharts for completeness
- * 2. generate-flowchart: Converts text descriptions into Mermaid flowchart syntax
+ * 2. convert-quotes: Converts double quotes to single quotes in flowchart descriptions
+ * 3. generate-flowchart: Converts text descriptions into Mermaid flowchart syntax
  */
 
 // Import required dependencies
@@ -96,7 +97,7 @@ function analyzeFlowchartDescription(description: string): {
   let preview = "Flow preview:\n";
 
   steps.forEach((step, index) => {
-    preview += `${index + 1}. ${step.trim()}\n`;
+    preview += `${index + 1}. ${step.replace(/"/g, "").trim()}\n`;
   });
 
   return {
@@ -104,94 +105,6 @@ function analyzeFlowchartDescription(description: string): {
     missingInfo, // Array of missing elements
     preview, // Text-based preview of the flowchart
   };
-}
-
-/**
- * Escapes special characters in a string for JSON safety
- *
- * @param text - The text to escape
- * @returns Escaped string safe for JSON inclusion
- */
-function escapeJsonString(text: string): string {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/\t/g, "\\t");
-}
-
-/**
- * Generates Mermaid flowchart syntax from a text description
- *
- * @param description - The text description of the flowchart
- * @returns String containing the Mermaid flowchart code
- */
-function generateFlowchart(description: string): string {
-  // Start with the basic Mermaid flowchart declaration
-  // TD indicates top-down direction for the flowchart
-  let flowchart = "flowchart TD\n";
-
-  // Parse the description into individual steps
-  // Split by periods, commas, and newlines, then clean and filter the results
-  const stepTexts = description
-    .split(/\.|,|\n/)
-    .filter((step) => step.trim().length > 0)
-    .map((step) => step.trim());
-
-  // Create node objects with unique IDs and labels from the step texts
-  const nodes: { id: string; label: string }[] = [];
-
-  stepTexts.forEach((text, index) => {
-    const id = `step${index + 1}`;
-    // Clean the label to remove characters that might cause issues in Mermaid
-    const cleanedLabel = text.replace(/['"]/g, "");
-    nodes.push({ id, label: cleanedLabel });
-  });
-
-  // Add node definitions to the flowchart
-  // Format: id["label"]
-  nodes.forEach((node) => {
-    flowchart += `    ${node.id}["${node.label}"]\n`;
-  });
-
-  // Connect nodes in sequence, with special handling for conditional statements
-  for (let i = 0; i < nodes.length - 1; i++) {
-    const current = nodes[i].id;
-    const next = nodes[i + 1].id;
-
-    // Check if the current node indicates a decision point
-    if (
-      nodes[i].label.toLowerCase().includes("if") ||
-      nodes[i].label.toLowerCase().includes("decide") ||
-      nodes[i].label.toLowerCase().includes("check")
-    ) {
-      // If it's a decision point, look for the matching "else" case
-      let foundElse = false;
-      for (let j = i + 1; j < nodes.length; j++) {
-        if (
-          nodes[j].label.toLowerCase().includes("else") ||
-          nodes[j].label.toLowerCase().includes("otherwise")
-        ) {
-          // Create 'Yes' and 'No' branches for the decision
-          flowchart += `    ${current} -->|Yes| ${nodes[i + 1].id}\n`;
-          flowchart += `    ${current} -->|No| ${nodes[j].id}\n`;
-          foundElse = true;
-          break;
-        }
-      }
-
-      // If no "else" case was found, just create a simple connection
-      if (!foundElse) {
-        flowchart += `    ${current} --> ${next}\n`;
-      }
-    } else {
-      // For non-decision nodes, create simple connections
-      flowchart += `    ${current} --> ${next}\n`;
-    }
-  }
-
-  return flowchart;
 }
 
 /**
@@ -243,49 +156,60 @@ server.tool(
 );
 
 /**
- * Register the generate-flowchart tool with the MCP server
- * This tool converts textual descriptions into Mermaid flowchart syntax
+ * Converts double quotes to single quotes in flowchart descriptions
+ * This helps prevent syntax errors in Mermaid code generation
+ *
+ * @param description - The text description containing double quotes
+ * @returns Object containing the converted description with single quotes
+ */
+function convertDoubleToSingleQuotesInsideText(description: string): {
+  convertedDescription: string;
+  replacementCount: number;
+} {
+  // Count how many replacements will be made
+  const doubleQuoteCount = (description.match(/"/g) || []).length;
+
+  // Replace double quotes with single quotes
+  const convertedDescription = `"${description.replace(/"/g, "")}"`;
+
+  return {
+    convertedDescription,
+    replacementCount: doubleQuoteCount,
+  };
+}
+
+/**
+ * Register the convert-quotes tool with the MCP server
+ * This tool converts double quotes to single quotes in flowchart descriptions
  */
 server.tool(
-  "generate-flowchart", // Tool identifier
-  "Generate a Mermaid flowchart from a text description", // Tool description
+  "convert-quotes", // Tool identifier
+  "Converts double quotes to single quotes in flowchart descriptions to prevent Mermaid syntax errors", // Tool description
   {
     // Input parameter schema defined with Zod
     description: z
       .string()
-      .describe("The text description of the flowchart to generate"),
+      .describe("The text description containing double quotes to convert"),
   },
   // Handler function for the tool
   async ({ description }) => {
-    try {
-      // Generate Mermaid syntax from the description
-      const mermaidCode = generateFlowchart(description);
+    // Convert double quotes to single quotes
+    const result = convertDoubleToSingleQuotesInsideText(description);
 
-      // Use a simpler format for the response to avoid JSON parsing issues
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              "Here's your Mermaid flowchart code:\n\n```mermaid\n" +
-              mermaidCode +
-              "\n```\n\nYou can use this code in any Mermaid-compatible tool or editor.",
-          },
-        ],
-      };
-    } catch (error) {
-      console.error("Error generating flowchart:", error);
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              "Error generating flowchart: " +
-              (error instanceof Error ? error.message : String(error)),
-          },
-        ],
-      };
-    }
+    // Build the response text
+    let responseText = `Converted ${result.replacementCount} double quote(s) to single quotes.\n\n`;
+    responseText += `Original description: ${description}\n\n`;
+    responseText += `Converted description: ${result.convertedDescription}`;
+
+    // Return response in the expected MCP format
+    return {
+      content: [
+        {
+          type: "text",
+          text: responseText,
+        },
+      ],
+    };
   },
 );
 
