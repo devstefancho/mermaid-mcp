@@ -1,6 +1,6 @@
 {
   "name": "@devstefancho/mermaid-mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP server for creating Mermaid flowcharts",
   "main": "build/index.js",
   "bin": {
@@ -10,7 +10,7 @@
     "build": "tsc && chmod +x build/cli.js",
     "start": "node build/index.js",
     "dev": "ts-node src/index.ts",
-    "publish": "npm publish --access public"
+    "release": "npm run build && npm publish --access public"
   },
   "keywords": [
     "mcp",
