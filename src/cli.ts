@@ -8,7 +8,7 @@
 import { main } from "./index.js";
 
 // Display banner
-console.info(`
+console.error(`
 ┌───────────────────────────────────────────┐
 │           Mermaid MCP Server              │
 │                                           │
