@@ -300,7 +300,7 @@ export async function main() {
 
   // Connect the server to the transport and start handling requests
   await server.connect(transport);
-  console.log("Mermaid MCP Server running on stdio");
+  console.error("[Mermaid MCP] Server running on stdio");
 }
 
 // Execute the main function when this file is run directly
